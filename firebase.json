@@ -11,6 +11,10 @@
       "**/node_modules/**"
     ]
   },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
+  },
   "emulators": {
     "singleProjectMode": true,
     "functions": {
