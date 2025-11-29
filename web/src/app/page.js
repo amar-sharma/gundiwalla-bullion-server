@@ -16,7 +16,7 @@ const HomePage = () => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // Hardcode admin for your UID
-        if (user.uid === 'o9RFyy2TZeVeRjA3njfCDapU2B33') {
+        if (user.uid === 'j50cZ39iWQh9S6nwQIhCwOxrEdD2') {
           setIsAdmin(true);
         }
         setUser(user);
