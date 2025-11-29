@@ -22,7 +22,7 @@ exports.updateBullionRates = onSchedule(
 	{
 		schedule: "*/9 3-18 * * *",
 		timeZone: "UTC",
-		memory: "128MiB",
+		memory: "512MiB",
 		timeoutSeconds: 540,
 	},
 	async (event) => {
@@ -33,7 +33,7 @@ exports.updateBullionRates = onSchedule(
 		}));
 		const istHour = istTime.getHours();
 		const istMinute = istTime.getMinutes();
-		console.log(istHour, istMinute);
+		console.log({ istHour, istMinute });
 		if (istHour < 9 || istHour > 23 || (istHour === 23 && istMinute > 30)) {
 			console.log("Not between 9AM and 11:30 IST");
 			return;
@@ -43,7 +43,7 @@ exports.updateBullionRates = onSchedule(
 		const collectionRef = db.collection("ticker").doc("data");
 		const interval = setInterval(async () => {
 			try {
-				const response = await fetch("https://liveapi.uk/com/ml/index.php", {
+				const response = await fetch("https://liveapi.uk/com/ml-spot/index.php", {
 					"headers": {
 						"accept": "application/json, text/plain, */*",
 						"accept-language": "en-US,en;q=0.9",
@@ -52,7 +52,7 @@ exports.updateBullionRates = onSchedule(
 						"priority": "u=1, i",
 						"sec-ch-ua": '"Chromium\";v=\"141\", \"Not?A_Brand\";v=\"8\"',
 						"sec-ch-ua-mobile": "?0",
-						"sec-ch-ua-platform": '"macOS\"',
+						"sec-ch-ua-platform": '"macOS"',
 						"sec-fetch-dest": "empty",
 						"sec-fetch-mode": "cors",
 						"sec-fetch-site": "cross-site",
@@ -70,8 +70,11 @@ exports.updateBullionRates = onSchedule(
 				const data = await response.json();
 				const goldData = data.find(item => item.symb === 'GOLD');
 				const silverData = data.find(item => item.symb === 'SILVER');
+				const spotGoldData = data.find(item => item.symb === 'SPOTGold');
+				const spotSilverData = data.find(item => item.symb === 'SPOTSilver');
+				const usdInrData = data.find(item => item.symb === 'USDINR');
 
-				if (!goldData || !silverData) {
+				if (!goldData || !silverData || !spotGoldData || !spotSilverData || !usdInrData) {
 					logger.error("Invalid data received");
 					return;
 				}
@@ -81,11 +84,31 @@ exports.updateBullionRates = onSchedule(
 						buy: parseFloat(goldData.buy),
 						sell: parseFloat(goldData.sell),
 						chg: parseFloat(goldData.chg),
+						rate: parseFloat(goldData.rate),
 					},
 					silver_rates: {
 						buy: parseFloat(silverData.buy),
 						sell: parseFloat(silverData.sell),
 						chg: parseFloat(silverData.chg),
+						rate: parseFloat(silverData.rate),
+					},
+					spot_gold_rates: {
+						buy: parseFloat(spotGoldData.buy),
+						sell: parseFloat(spotGoldData.sell),
+						chg: parseFloat(spotGoldData.chg),
+						rate: parseFloat(spotGoldData.rate),
+					},
+					spot_silver_rates: {
+						buy: parseFloat(spotSilverData.buy),
+						sell: parseFloat(spotSilverData.sell),
+						chg: parseFloat(spotSilverData.chg),
+						rate: parseFloat(spotSilverData.rate),
+					},
+					usd_inr: {
+						buy: parseFloat(usdInrData.buy),
+						sell: parseFloat(usdInrData.sell),
+						chg: parseFloat(usdInrData.chg),
+						rate: parseFloat(usdInrData.rate),
 					},
 				};
 

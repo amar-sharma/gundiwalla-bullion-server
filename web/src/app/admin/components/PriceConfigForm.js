@@ -5,25 +5,33 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 // Default product structure with zero values
-const defaultProducts = {
-  "Gold": { extra: 0, percentage: 0, manual: 0 },
-  "Gold RTGS": { extra: 0, percentage: 0, manual: 0 },
-  "Gold Coin - 1gm": { extra: 0, percentage: 0, manual: 0 },
-  "Gold Coin - 2gm": { extra: 0, percentage: 0, manual: 0 },
-  "Gold Coin - 5gm": { extra: 0, percentage: 0, manual: 0 },
-  "Gold Coin - 10gm": { extra: 0, percentage: 0, manual: 0 },
-  "Gold Coin - 50gm": { extra: 0, percentage: 0, manual: 0 },
-  "Gold Coin - 100gm": { extra: 0, percentage: 0, manual: 0 },
-  "Silver": { extra: 0, percentage: 0, manual: 0 },
-  "Silver RTGS": { extra: 0, percentage: 0, manual: 0 }
+const defaultProductConfig = {
+  buy: { extra: 0, percentage: 0, manual: 0 },
+  sell: { extra: 0, percentage: 0, manual: 0 }
 };
+
+const productNames = [
+  "Gold",
+  "Gold RTGS",
+  "Gold Coin - 1gm",
+  "Gold Coin - 2gm",
+  "Gold Coin - 5gm",
+  "Gold Coin - 10gm",
+  "Gold Coin - 50gm",
+  "Gold Coin - 100gm",
+  "Silver",
+  "Silver RTGS"
+];
+
+const defaultConfig = productNames.reduce((acc, productName) => {
+  acc[productName] = defaultProductConfig;
+  return acc;
+}, {});
 
 const PriceConfigForm = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [initialData, setInitialData] = useState(defaultProducts);
-  
-  console.log('PriceConfigForm rendered, initialData:', initialData);
+  const [initialData, setInitialData] = useState(defaultConfig);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,20 +40,23 @@ const PriceConfigForm = () => {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          // Merge fetched data with default structure
-          const mergedData = { ...defaultProducts, ...data };
+          const mergedData = productNames.reduce((acc, productName) => {
+            acc[productName] = {
+              buy: { ...defaultProductConfig.buy, ...data[productName]?.buy },
+              sell: { ...defaultProductConfig.sell, ...data[productName]?.sell }
+            };
+            return acc;
+          }, {});
           setInitialData(mergedData);
           form.setFieldsValue(mergedData);
         } else {
-          // Document doesn't exist, use default structure
-          setInitialData(defaultProducts);
-          form.setFieldsValue(defaultProducts);
+          setInitialData(defaultConfig);
+          form.setFieldsValue(defaultConfig);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
-        // On error, still show form with default structure
-        setInitialData(defaultProducts);
-        form.setFieldsValue(defaultProducts);
+        setInitialData(defaultConfig);
+        form.setFieldsValue(defaultConfig);
       }
     };
     fetchData();
@@ -54,13 +65,19 @@ const PriceConfigForm = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      // Clean the values to ensure no undefined fields
       const cleanedValues = {};
       Object.keys(values).forEach(productName => {
         cleanedValues[productName] = {
-          extra: values[productName]?.extra ?? 0,
-          percentage: values[productName]?.percentage ?? 0,
-          manual: values[productName]?.manual ?? 0
+          buy: {
+            extra: values[productName]?.buy?.extra ?? 0,
+            percentage: values[productName]?.buy?.percentage ?? 0,
+            manual: values[productName]?.buy?.manual ?? 0
+          },
+          sell: {
+            extra: values[productName]?.sell?.extra ?? 0,
+            percentage: values[productName]?.sell?.percentage ?? 0,
+            manual: values[productName]?.sell?.manual ?? 0
+          }
         };
       });
 
@@ -73,6 +90,46 @@ const PriceConfigForm = () => {
       setLoading(false);
     }
   };
+
+  const renderHeader = () => (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '60px 1fr 1fr 1fr',
+      gap: '12px',
+      alignItems: 'center',
+      marginBottom: '8px',
+      color: '#a6a6a6',
+      fontSize: '11px'
+    }}>
+      <span></span>
+      <span style={{ textAlign: 'center' }}>%</span>
+      <span style={{ textAlign: 'center' }}>Extra</span>
+      <span style={{ textAlign: 'center' }}>Fixed</span>
+    </div>
+  );
+
+  const renderFormRow = (productName, type) => (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '60px 1fr 1fr 1fr',
+      gap: '12px',
+      alignItems: 'center',
+      marginBottom: '8px'
+    }}>
+      <span style={{ color: type === 'buy' ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>
+        {type.charAt(0).toUpperCase() + type.slice(1)}
+      </span>
+      <Form.Item name={[productName, type, 'percentage']} style={{ margin: 0 }}>
+        <InputNumber style={{ width: '100%' }} placeholder="%" size="small" controls={false} />
+      </Form.Item>
+      <Form.Item name={[productName, type, 'extra']} style={{ margin: 0 }}>
+        <InputNumber style={{ width: '100%' }} placeholder="Extra" size="small" controls={false} />
+      </Form.Item>
+      <Form.Item name={[productName, type, 'manual']} style={{ margin: 0 }}>
+        <InputNumber style={{ width: '100%' }} placeholder="Fixed" size="small" controls={false} />
+      </Form.Item>
+    </div>
+  );
 
   return (
     <Form form={form} onFinish={onFinish} layout="vertical" size="small">
@@ -87,72 +144,17 @@ const PriceConfigForm = () => {
               backgroundColor: '#1f1f1f'
             }}
           >
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 80px 80px 80px',
-              gap: '12px',
-              alignItems: 'center'
+            <h4 style={{ 
+              margin: '0 0 12px 0', 
+              color: '#FFD700', 
+              fontSize: '14px',
+              fontWeight: '600'
             }}>
-              <h4 style={{ 
-                margin: 0, 
-                color: '#FFD700', 
-                fontSize: '14px',
-                fontWeight: '600'
-              }}>
-                {productName}
-              </h4>
-              
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: '#a6a6a6', marginBottom: '4px' }}>
-                  %
-                </div>
-                <Form.Item 
-                  name={[productName, 'percentage']} 
-                  style={{ margin: 0 }}
-                >
-                  <InputNumber 
-                    style={{ width: '100%' }} 
-                    placeholder="0"
-                    size="small"
-                    controls={false}
-                  />
-                </Form.Item>
-              </div>
-              
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: '#a6a6a6', marginBottom: '4px' }}>
-                  Extra
-                </div>
-                <Form.Item 
-                  name={[productName, 'extra']} 
-                  style={{ margin: 0 }}
-                >
-                  <InputNumber 
-                    style={{ width: '100%' }} 
-                    placeholder="0"
-                    size="small"
-                    controls={false}
-                  />
-                </Form.Item>
-              </div>
-              
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: '#a6a6a6', marginBottom: '4px' }}>
-                  Fixed
-                </div>
-                <Form.Item 
-                  name={[productName, 'manual']} 
-                  style={{ margin: 0 }}
-                >
-                  <InputNumber 
-                    style={{ width: '100%' }} 
-                    placeholder="0"
-                    size="small"
-                    controls={false}
-                  />
-                </Form.Item>
-              </div>
-            </div>
+              {productName}
+            </h4>
+            {renderHeader()}
+            {renderFormRow(productName, 'buy')}
+            {renderFormRow(productName, 'sell')}
           </div>
         ))}
       </div>
@@ -185,3 +187,4 @@ const PriceConfigForm = () => {
 };
 
 export default PriceConfigForm;
+
