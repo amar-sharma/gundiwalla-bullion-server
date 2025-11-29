@@ -10,6 +10,8 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 
 // Initialize Firebase Admin
@@ -20,8 +22,9 @@ const db = getFirestore("bullion");
 
 exports.updateBullionRates = onSchedule(
 	{
-		schedule: "*/9 3-18 * * *",
+		schedule: "*/9 3-18 * * 1-5",
 		timeZone: "UTC",
+		region: "asia-south1",
 		memory: "512MiB",
 		timeoutSeconds: 540,
 	},
@@ -129,3 +132,73 @@ exports.updateBullionRates = onSchedule(
 		setTimeout(() => clearInterval(interval), 539 * 1000);
 	},
 );
+
+exports.getUsers = onCall({ region: "asia-south1" }, async (request) => {
+	if (!request.auth) {
+		throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+	}
+
+	try {
+		const listUsersResult = await getAuth().listUsers(1000);
+		return listUsersResult.users.map(user => ({
+			uid: user.uid,
+			email: user.email,
+			displayName: user.displayName,
+			phoneNumber: user.phoneNumber,
+			metadata: user.metadata,
+		}));
+	} catch (error) {
+		console.error('Error listing users:', error);
+		throw new HttpsError('internal', 'Error listing users');
+	}
+});
+
+exports.createUser = onCall({ region: "asia-south1" }, async (request) => {
+	if (!request.auth) {
+		throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+	}
+
+	const { displayName, phoneNumber, password, email } = request.data;
+
+	console.log({ displayName, phoneNumber, password, email });
+
+	try {
+		const userRecord = await getAuth().createUser({
+			email: email || undefined,
+			phoneNumber: phoneNumber,
+			password: password || 'password123', // Default password if not provided
+			displayName: displayName,
+		});
+
+		await getAuth().setCustomUserClaims(userRecord.uid, { userAllowed: true });
+
+		return {
+			uid: userRecord.uid,
+			displayName: userRecord.displayName,
+			phoneNumber: userRecord.phoneNumber,
+		};
+	} catch (error) {
+		console.error('Error creating user:', error);
+		throw new HttpsError('internal', error.message);
+	}
+});
+
+exports.deleteUser = onCall({ region: "asia-south1" }, async (request) => {
+	if (!request.auth) {
+		throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+	}
+
+	const { uid } = request.data;
+	if (!uid) {
+		throw new HttpsError('invalid-argument', 'The function must be called with a uid.');
+	}
+
+	try {
+		await getAuth().deleteUser(uid);
+		return { success: true };
+	} catch (error) {
+		console.error('Error deleting user:', error);
+		throw new HttpsError('internal', error.message);
+	}
+});
+
