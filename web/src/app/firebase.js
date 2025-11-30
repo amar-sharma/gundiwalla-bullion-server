@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 
 
 // Your web app's Firebase configuration
@@ -17,6 +18,15 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Initialize App Check with reCAPTCHA Enterprise
+if (typeof window !== 'undefined') {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider('6LdFxRwsAAAAAGd8w8sQzNNLovpyc8l_VmEwE5g1'),
+    isTokenAutoRefreshEnabled: true // Optional: automatically refresh tokens
+  });
+}
+
 const auth = getAuth(app);
 const db = getFirestore(app, "bullion");
 const functions = getFunctions(app, 'asia-south1');
