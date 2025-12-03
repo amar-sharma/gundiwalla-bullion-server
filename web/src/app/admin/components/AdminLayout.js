@@ -1,5 +1,5 @@
 'use client';
-import { Layout, Tabs, Button, message } from 'antd';
+import { Layout, Tabs, Button, App } from 'antd';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase';
 import PriceConfigForm from './PriceConfigForm';
@@ -9,6 +9,7 @@ import Users from './Users';
 const { Content, Header } = Layout;
 
 const AdminLayout = () => {
+  const { message } = App.useApp();
   const items = [
     {
       key: 'prices',

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Form, InputNumber, Button, message } from 'antd';
+import { Form, InputNumber, Button, App, Spin } from 'antd';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
@@ -31,22 +31,37 @@ const defaultConfig = productNames.reduce((acc, productName) => {
 const PriceConfigForm = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [initialData, setInitialData] = useState(defaultConfig);
+  const { message } = App.useApp();
 
   useEffect(() => {
     const fetchData = async () => {
+      setInitialLoading(true);
       try {
         const docRef = doc(db, 'rateConfig', 'charges');
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
+          console.log('Fetched data from Firestore:', data);
+
+          // Transform data from {buy: {productName: config}, sell: {productName: config}}
+          // to {productName: {buy: config, sell: config}}
           const mergedData = productNames.reduce((acc, productName) => {
             acc[productName] = {
-              buy: { ...defaultProductConfig.buy, ...data[productName]?.buy },
-              sell: { ...defaultProductConfig.sell, ...data[productName]?.sell }
+              buy: {
+                ...defaultProductConfig.buy,
+                ...(data.buy?.[productName] || {})
+              },
+              sell: {
+                ...defaultProductConfig.sell,
+                ...(data.sell?.[productName] || {})
+              }
             };
             return acc;
           }, {});
+
+          console.log('Transformed data for form:', mergedData);
           setInitialData(mergedData);
           form.setFieldsValue(mergedData);
         } else {
@@ -55,8 +70,11 @@ const PriceConfigForm = () => {
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+        message.error('Failed to load configuration. Using default values.');
         setInitialData(defaultConfig);
         form.setFieldsValue(defaultConfig);
+      } finally {
+        setInitialLoading(false);
       }
     };
     fetchData();
@@ -65,22 +83,27 @@ const PriceConfigForm = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const cleanedValues = {};
+      // Transform data from {productName: {buy: config, sell: config}}
+      // to {buy: {productName: config}, sell: {productName: config}}
+      const cleanedValues = {
+        buy: {},
+        sell: {}
+      };
+
       Object.keys(values).forEach(productName => {
-        cleanedValues[productName] = {
-          buy: {
-            extra: values[productName]?.buy?.extra ?? 0,
-            percentage: values[productName]?.buy?.percentage ?? 0,
-            manual: values[productName]?.buy?.manual ?? 0
-          },
-          sell: {
-            extra: values[productName]?.sell?.extra ?? 0,
-            percentage: values[productName]?.sell?.percentage ?? 0,
-            manual: values[productName]?.sell?.manual ?? 0
-          }
+        cleanedValues.buy[productName] = {
+          extra: values[productName]?.buy?.extra ?? 0,
+          percentage: values[productName]?.buy?.percentage ?? 0,
+          manual: values[productName]?.buy?.manual ?? 0
+        };
+        cleanedValues.sell[productName] = {
+          extra: values[productName]?.sell?.extra ?? 0,
+          percentage: values[productName]?.sell?.percentage ?? 0,
+          manual: values[productName]?.sell?.manual ?? 0
         };
       });
 
+      console.log('Saving to Firestore:', cleanedValues);
       await setDoc(doc(db, 'rateConfig', 'charges'), cleanedValues, { merge: true });
       message.success('Prices updated successfully!');
     } catch (error) {
@@ -114,7 +137,8 @@ const PriceConfigForm = () => {
       gridTemplateColumns: '60px 1fr 1fr 1fr',
       gap: '12px',
       alignItems: 'center',
-      marginBottom: '8px'
+      marginBottom: '8px',
+      maxWidth: '400px'
     }}>
       <span style={{ color: type === 'buy' ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>
         {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -131,22 +155,30 @@ const PriceConfigForm = () => {
     </div>
   );
 
+  if (initialLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <Spin size="large" tip="Loading configuration..." />
+      </div>
+    );
+  }
+
   return (
-    <Form form={form} onFinish={onFinish} layout="vertical" size="small">
-      <div style={{ display: 'grid', gap: '12px' }}>
+    <Form form={form} onFinish={onFinish} layout="vertical" size="small" initialValues={initialData}>
+      <div style={{ display: 'flex', gap: '12px', flexDirection: 'row', flexWrap: 'wrap' }}>
         {Object.keys(initialData).map((productName) => (
-          <div 
-            key={productName} 
-            style={{ 
-              padding: '12px', 
-              border: '1px solid #434343', 
+          <div
+            key={productName}
+            style={{
+              padding: '12px',
+              border: '1px solid #434343',
               borderRadius: '6px',
               backgroundColor: '#1f1f1f'
             }}
           >
-            <h4 style={{ 
-              margin: '0 0 12px 0', 
-              color: '#FFD700', 
+            <h4 style={{
+              margin: '0 0 12px 0',
+              color: '#FFD700',
               fontSize: '14px',
               fontWeight: '600'
             }}>
@@ -158,19 +190,19 @@ const PriceConfigForm = () => {
           </div>
         ))}
       </div>
-      
-      <div style={{ 
-        position: 'sticky', 
-        bottom: '0', 
-        backgroundColor: '#141414', 
-        padding: '16px 0', 
+
+      <div style={{
+        position: 'sticky',
+        bottom: '0',
+        backgroundColor: '#141414',
+        padding: '16px 0',
         textAlign: 'center',
         marginTop: '20px'
       }}>
-        <Button 
-          type="primary" 
-          htmlType="submit" 
-          loading={loading} 
+        <Button
+          type="primary"
+          htmlType="submit"
+          loading={loading}
           size="large"
           style={{
             height: '44px',

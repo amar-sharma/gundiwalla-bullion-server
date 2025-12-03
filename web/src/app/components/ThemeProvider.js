@@ -1,5 +1,5 @@
 'use client';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, theme, App } from 'antd';
 
 const ThemeProvider = ({ children }) => {
   return (
@@ -54,7 +54,9 @@ const ThemeProvider = ({ children }) => {
         },
       }}
     >
-      {children}
+      <App>
+        {children}
+      </App>
     </ConfigProvider>
   );
 };

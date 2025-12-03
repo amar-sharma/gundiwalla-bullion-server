@@ -1,11 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import LoginForm from './admin/components/LoginForm';
 import AdminLayout from './admin/components/AdminLayout';
-import { Result, Spin, Layout } from 'antd';
+import { Result, Spin, Layout, Button } from 'antd';
 
 const HomePage = () => {
   const [user, setUser] = useState(null);
@@ -15,8 +15,13 @@ const HomePage = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Hardcode admin for your UID
-        if (user.uid === '6OyJKa0voyTia4Sza5ZFhgqB0mZ2') {
+        // Get custom claims from ID token
+        const idTokenResult = await user.getIdTokenResult();
+        console.log({ user });
+        console.log({ customClaims: idTokenResult.claims });
+
+        // Check if user has admin claim
+        if (idTokenResult.claims.admin) {
           setIsAdmin(true);
         }
         setUser(user);
@@ -43,7 +48,26 @@ const HomePage = () => {
   }
 
   if (!isAdmin) {
-    return <Result status="403" title="403" subTitle="Sorry, you are not authorized to access this page." />;
+    const handleLogout = async () => {
+      try {
+        await signOut(auth);
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    };
+
+    return (
+      <Result
+        status="403"
+        title="403"
+        subTitle="Sorry, you are not authorized to access this page."
+        extra={
+          <Button type="primary" onClick={handleLogout}>
+            Logout
+          </Button>
+        }
+      />
+    );
   }
 
   return <AdminLayout />;

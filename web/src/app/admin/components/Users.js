@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Table, Button, Form, Input, message, Card, Row, Col, Alert, Popconfirm } from 'antd';
+import { Table, Button, Form, Input, App, Card, Row, Col, Alert, Popconfirm } from 'antd';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../firebase';
 
@@ -10,6 +10,7 @@ const Users = () => {
 	const [form] = Form.useForm();
 	const [registering, setRegistering] = useState(false);
 	const [error, setError] = useState(null);
+	const { message } = App.useApp();
 
 	const fetchUsers = async () => {
 		setLoading(true);

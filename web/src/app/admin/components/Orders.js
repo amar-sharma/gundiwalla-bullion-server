@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, Popconfirm, Modal, InputNumber, Tag, message, Tooltip } from 'antd';
+import { Table, Button, Space, Popconfirm, Modal, InputNumber, Tag, App, Tooltip } from 'antd';
 import { DeleteOutlined, CheckOutlined, EditOutlined } from '@ant-design/icons';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase';
@@ -11,6 +11,7 @@ const Orders = () => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingOrder, setEditingOrder] = useState(null);
 	const [newQuantity, setNewQuantity] = useState(0);
+	const { message } = App.useApp();
 
 	useEffect(() => {
 		const q = query(collection(db, 'orders'), orderBy('timestamp', 'desc'));

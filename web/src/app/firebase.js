@@ -21,10 +21,19 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize App Check with reCAPTCHA Enterprise
 if (typeof window !== 'undefined') {
-  initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider('6LdFxRwsAAAAAGd8w8sQzNNLovpyc8l_VmEwE5g1'),
-    isTokenAutoRefreshEnabled: true // Optional: automatically refresh tokens
-  });
+  try {
+    const appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaEnterpriseProvider('6LdFxRwsAAAAAGd8w8sQzNNLovpyc8l_VmEwE5g1'),
+      isTokenAutoRefreshEnabled: true
+    });
+    console.log('✅ App Check initialized successfully with reCAPTCHA Enterprise');
+  } catch (error) {
+    console.error('❌ Failed to initialize App Check:', error);
+    console.error('Please ensure:');
+    console.error('1. reCAPTCHA Enterprise API is enabled in Google Cloud Console');
+    console.error('2. The site key is correctly configured in Firebase Console');
+    console.error('3. Your domain is added to the allowed domains list');
+  }
 }
 
 const auth = getAuth(app);

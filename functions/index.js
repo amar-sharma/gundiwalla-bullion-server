@@ -8,21 +8,49 @@
  */
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { initializeApp } = require("firebase-admin/app");
+const admin = require("firebase-admin");
+const { initializeApp, cert } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
+const fs = require("fs");
+const path = require("path");
+
+// Firebase Functions v2 automatically loads .env files
+// No need to manually call dotenv.config()
 
 // Initialize Firebase Admin
-initializeApp();
+// If you are running the functions locally, you need to initialize the app with the service account key.
+if (process.env.FIREBASE_ADMIN_KEY) {
+	let serviceAccount;
+
+	// Check if FIREBASE_ADMIN_KEY is a file path or JSON string
+	if (process.env.FIREBASE_ADMIN_KEY.startsWith('/') || process.env.FIREBASE_ADMIN_KEY.startsWith('./')) {
+		// It's a file path - read the file
+		const keyPath = path.resolve(process.env.FIREBASE_ADMIN_KEY);
+		serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+	} else {
+		// It's a JSON string - parse it directly
+		serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
+	}
+
+	initializeApp({
+		credential: cert(serviceAccount),
+	});
+} else {
+	// For emulator or deployed environment
+	initializeApp();
+}
+
+
 const db = getFirestore("bullion");
 
 // Scheduled function to update ticker data (runs every second)
 
 exports.updateBullionRates = onSchedule(
 	{
-		schedule: "*/9 3-18 * * 1-5",
+		schedule: "*/9 3-18 * * 1-6",
 		timeZone: "UTC",
 		region: "asia-south1",
 		memory: "512MiB",
@@ -201,4 +229,3 @@ exports.deleteUser = onCall({ region: "asia-south1" }, async (request) => {
 		throw new HttpsError('internal', error.message);
 	}
 });
-
