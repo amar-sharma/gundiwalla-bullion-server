@@ -195,6 +195,7 @@ const Orders = () => {
 				rowKey="id"
 				loading={loading}
 				pagination={{ pageSize: 10 }}
+				scroll={{ x: 1000 }}
 			/>
 
 			<Modal

@@ -13,6 +13,8 @@ const defaultProductConfig = {
 const productNames = [
   "Gold",
   "Gold RTGS",
+  "Gold (995)",
+  "Gold RTGS (995)",
   "Gold Coin - 1gm",
   "Gold Coin - 2gm",
   "Gold Coin - 5gm",
@@ -117,8 +119,8 @@ const PriceConfigForm = () => {
   const renderHeader = () => (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '60px 1fr 1fr 1fr',
-      gap: '12px',
+      gridTemplateColumns: '70px repeat(3, 1fr)',
+      gap: '8px',
       alignItems: 'center',
       marginBottom: '8px',
       color: '#a6a6a6',
@@ -134,11 +136,12 @@ const PriceConfigForm = () => {
   const renderFormRow = (productName, type) => (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '60px 1fr 1fr 1fr',
-      gap: '12px',
+      gridTemplateColumns: '70px repeat(3, 1fr)',
+      gap: '8px',
       alignItems: 'center',
       marginBottom: '8px',
-      maxWidth: '400px'
+      width: '100%',
+      minWidth: '280px'
     }}>
       <span style={{ color: type === 'buy' ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>
         {type.charAt(0).toUpperCase() + type.slice(1)}
