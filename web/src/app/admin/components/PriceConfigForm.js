@@ -13,8 +13,11 @@ const defaultProductConfig = {
 const productNames = [
   "Gold",
   "Gold RTGS",
-  "Gold (995)",
+  "Gold Costing",
+  "Gold RTGS (999)",
   "Gold RTGS (995)",
+  "Gold (995)",
+  "Gold (999)",
   "Gold Coin - 1gm",
   "Gold Coin - 2gm",
   "Gold Coin - 5gm",
