@@ -21,17 +21,17 @@ const path = require("path");
 
 // Initialize Firebase Admin
 // If you are running the functions locally, you need to initialize the app with the service account key.
-if (process.env.FIREBASE_ADMIN_KEY) {
+if (process.env.MY_FIREBASE_ADMIN_KEY) {
 	let serviceAccount;
 
 	// Check if FIREBASE_ADMIN_KEY is a file path or JSON string
-	if (process.env.FIREBASE_ADMIN_KEY.startsWith('/') || process.env.FIREBASE_ADMIN_KEY.startsWith('./')) {
+	if (process.env.MY_FIREBASE_ADMIN_KEY.startsWith('/') || process.env.MY_FIREBASE_ADMIN_KEY.startsWith('./')) {
 		// It's a file path - read the file
-		const keyPath = path.resolve(process.env.FIREBASE_ADMIN_KEY);
+		const keyPath = path.resolve(process.env.MY_FIREBASE_ADMIN_KEY);
 		serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
 	} else {
 		// It's a JSON string - parse it directly
-		serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
+		serviceAccount = JSON.parse(process.env.MY_FIREBASE_ADMIN_KEY);
 	}
 
 	initializeApp({
