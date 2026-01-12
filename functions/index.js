@@ -48,6 +48,37 @@ const db = getFirestore("bullion");
 
 // Scheduled function to update ticker data (runs every second)
 
+
+const makeRequestToGetBullionRates = async (url) => {
+	console.log("Fetching data from", url);
+	const response = await fetch(url, {
+		"headers": {
+			"accept": "application/json, text/plain, */*",
+			"accept-language": "en-US,en;q=0.9",
+			"cache-control": "no-cache",
+			"pragma": "no-cache",
+			"priority": "u=1, i",
+			"sec-ch-ua": '"Chromium\";v=\"141\", \"Not?A_Brand\";v=\"8\"',
+			"sec-ch-ua-mobile": "?0",
+			"sec-ch-ua-platform": '"macOS"',
+			"sec-fetch-dest": "empty",
+			"sec-fetch-mode": "cors",
+			"sec-fetch-site": "cross-site",
+			"Referer": "https://mcxlive.in/"
+		},
+		"body": null,
+		"method": "GET"
+	});
+
+	if (!response.ok) {
+		logger.error(`HTTP error! status: ${response.status}`);
+		return;
+	}
+
+	return response.json();
+}
+
+
 exports.updateBullionRates = onSchedule(
 	{
 		schedule: "*/9 3-18 * * 1-6",
@@ -74,36 +105,13 @@ exports.updateBullionRates = onSchedule(
 		const collectionRef = db.collection("ticker").doc("data");
 		const interval = setInterval(async () => {
 			try {
-				const response = await fetch("https://liveapi.uk/com/ml-spot/index.php", {
-					"headers": {
-						"accept": "application/json, text/plain, */*",
-						"accept-language": "en-US,en;q=0.9",
-						"cache-control": "no-cache",
-						"pragma": "no-cache",
-						"priority": "u=1, i",
-						"sec-ch-ua": '"Chromium\";v=\"141\", \"Not?A_Brand\";v=\"8\"',
-						"sec-ch-ua-mobile": "?0",
-						"sec-ch-ua-platform": '"macOS"',
-						"sec-fetch-dest": "empty",
-						"sec-fetch-mode": "cors",
-						"sec-fetch-site": "cross-site",
-						"Referer": "https://mcxlive.in/"
-					},
-					"body": null,
-					"method": "GET"
-				});
-
-				if (!response.ok) {
-					logger.error(`HTTP error! status: ${response.status}`);
-					return;
-				}
-
-				const data = await response.json();
-				const goldData = data.find(item => item.symb === 'GOLD');
-				const silverData = data.find(item => item.symb === 'SILVER');
-				const spotGoldData = data.find(item => item.symb === 'SPOTGold');
-				const spotSilverData = data.find(item => item.symb === 'SPOTSilver');
-				const usdInrData = data.find(item => item.symb === 'USDINR');
+				const requests = [makeRequestToGetBullionRates("https://liveapi.uk/com/ml-spot/index.php"), makeRequestToGetBullionRates("https://liveapi.uk/com/ml/index.php")];
+				const [spotData, allData] = await Promise.all(requests);
+				const goldData = allData.find(item => item.symb === 'GOLD');
+				const silverData = allData.find(item => item.symb === 'SILVER');
+				const spotGoldData = spotData.find(item => item.symb === 'SPOTGold');
+				const spotSilverData = spotData.find(item => item.symb === 'SPOTSilver');
+				const usdInrData = spotData.find(item => item.symb === 'USDINR');
 
 				if (!goldData || !silverData || !spotGoldData || !spotSilverData || !usdInrData) {
 					logger.error("Invalid data received");
